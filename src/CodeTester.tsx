@@ -10,6 +10,9 @@ import "./App.css";
 interface CodeTesterProps {
   starterCode: string;
   language: "js" | "c#";
+  functionName?: string;
+  testCases?: string[];
+  expectedResult?: string;
 }
 
 export default function CodeTester(props: CodeTesterProps) {
@@ -17,6 +20,7 @@ export default function CodeTester(props: CodeTesterProps) {
   const [evalError, setEvalError] = useState("");
   const [codeOutput, setCodeOutput] = useState("");
   const [outputError, setOutputError] = useState("");
+  const [evalResult, setEvalResult] = useState("");
 
   const resetState = () => {
     setEvalError("");
@@ -24,10 +28,42 @@ export default function CodeTester(props: CodeTesterProps) {
     setOutputError("");
   };
 
+  const buildJavaScriptInputString = (inputCode: string): string => {
+    let inputString = inputCode;
+    if (props.functionName) {
+      if (props.testCases) {
+        props.testCases.forEach((testCase) => {
+          inputString += `\n console.log(${props.functionName}(${testCase}))`;
+        });
+      } else {
+        inputString += `\n console.log(${props.functionName}())`;
+      }
+    }
+    return inputString;
+  };
+
+  const buildCsharpInputString = (inputCode: string): string => {
+    `public class Program{public static void Main(){System.Console.WriteLine("Hello world")}}`;
+    if (props.functionName) {
+      let inputString = `public class Program{ ${inputCode} public static void Main(){ \n`;
+      if (props.testCases) {
+        props.testCases.forEach((testCase) => {
+          inputString += `\n System.Console.WriteLine(${props.functionName}(${testCase}));`;
+        });
+      } else {
+        inputString += `\n System.Console.WriteLine(${props.functionName}());`;
+      }
+      inputString += "}}";
+      console.log(inputString);
+      return inputString;
+    } else return inputCode;
+  };
+
   const handleInput = (value: string) => setUserCode(value);
 
   const handleEval = async () => {
     resetState();
+    const input = props.language === "js" ? buildJavaScriptInputString(userCode) : buildCsharpInputString(userCode);
     fetch("https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=true", {
       method: "POST",
       headers: {
@@ -37,7 +73,7 @@ export default function CodeTester(props: CodeTesterProps) {
       },
       body: JSON.stringify({
         language_id: props.language === "js" ? 63 : 51, // javascript
-        source_code: btoa(userCode),
+        source_code: btoa(input),
       }),
     })
       .then((r) =>
@@ -67,7 +103,15 @@ export default function CodeTester(props: CodeTesterProps) {
           setOutputError(data.stderr);
         }
         if (data.stdout) {
+          if (props.expectedResult) {
+            if (props.expectedResult.replace(/\s/g, "").toLowerCase() === atob(data.stdout).replace(/\s/g, "").toLowerCase()) {
+              setEvalResult("Correct!");
+            } else {
+              setEvalResult("Not Quite...");
+            }
+          }
           console.log(atob(data.stdout));
+
           setCodeOutput(atob(data.stdout));
         }
       })
@@ -81,6 +125,7 @@ export default function CodeTester(props: CodeTesterProps) {
       {codeOutput !== "" ? <p>Output: {codeOutput}</p> : <></>}
       {outputError !== "" ? <p>Error: {outputError}</p> : <></>}
       {evalError !== "" ? <p>Error sending code: {evalError}</p> : <></>}
+      {evalResult !== "" ? <p>{evalResult}</p> : <></>}
     </>
   );
 }
