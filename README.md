@@ -130,6 +130,14 @@ testCases => [1,2,3]
 
 _Note: the exact formatting of the output string will not look as clean as the examples provided. Indentation/Spacing isn't seen by the user, and it doesn't effect evaluation for C# or JavaScript specifically. The actual output string will look much more condensed_
 
+### How the API call works:
+
+The main functionality is broken down into two API calls. The first is a POST request to the `/submissions` endpoint with the `base64_encoded=true` parameter. It's fairly straight forward. A POST request with some auth headers, and the body of the request is a stringified JSON object that contains a language Id, 93 for JS, 51 for C#, and then the previously created output string that has been base64 encoded. After making this request. The response will be a token, which can be used to see what the output of the submitted code is. While there is a way to get the response from the code automatically without having to go through the token first, according to the docs it isn't as stable as making the second call manually.
+
+The second API call is a GET request to the same `/submissions` endpoint, with the parameters of `?base64_encoded=true&fields=stdout,stderr,status_id,language_id,status,compile_output`. The `fields` parameter is important here, as it changes the shape of the object that gets sent back. The key ones are `stdout`, `stderr`, and `compile_output`. `stdout` is the exact output of the code that was submitted, `stderr` is any error messages that occur after compile time, mainly useful for JavaScript, and `compile_output` are any errors that occur at compile time, mainly useful for C# errors. These all come back base64 encoded, so they need to be decoded if being displayed to the user.
+
+The actual checking if the code passes or not is probably the simplest part of the application. All I am doing is checking if the `stdout` of the API response is equal to the `expectedResult` prop that gets passed into the component. If they match, they pass the quiz.
+
 ### Known Bugs:
 
 Currently their are no known bugs. The live deployed site has a limit of 50 API calls per day, so if you don't see any results, open up the dev tools console and check if there any rate limiting related errors. If there are, then check back in 24 hours.
