@@ -139,7 +139,9 @@ export default function CodeTester(props: CodeTesterProps) {
 
   return (
     <>
-      <AceEditor mode={props.language === "js" ? "javascript" : "csharp"} theme="twilight" onChange={handleInput} value={userCode} />
+      <div style={{ width: "100%", display: "flex", justifyContent: "center" }}>
+        <AceEditor mode={props.language === "js" ? "javascript" : "csharp"} theme="twilight" onChange={handleInput} value={userCode} />
+      </div>
       <button onClick={handleEval}>Evaluate Code</button>
       {codeOutput !== "" ? <p>Output: {codeOutput}</p> : <></>}
       {outputError !== "" ? <p>Error: {outputError}</p> : <></>}
